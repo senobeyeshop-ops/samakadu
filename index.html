@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parole — s’entraîner à parler en public</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f4;--ink:#101828;--mut:#52607a;--s:#1d4ed8;--e:#b4235a;--a:#0f766e;--line:#cfd6e0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.05;margin:0}
+a{color:inherit}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px clamp(16px,4vw,48px)}
+.logo{font:800 22px "Bricolage Grotesque",sans-serif;text-decoration:none}
+button{font:inherit;cursor:pointer;border:2px solid var(--ink);background:var(--ink);color:#fff;padding:10px 18px;border-radius:6px}
+button.alt{background:transparent;color:var(--ink)}
+button:disabled{opacity:.5;cursor:wait}
+:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
+main{max-width:1000px;margin:0 auto;padding:0 clamp(16px,4vw,48px) 64px}
+.hero{padding:32px 0 40px}.hero h1{font-size:clamp(40px,8vw,84px);font-weight:800;max-width:11ch}
+.hero p{max-width:52ch;color:var(--mut)}
+.band{display:flex;flex-direction:column;justify-content:flex-end;min-height:190px;padding:24px clamp(16px,4vw,40px);color:#fff;text-decoration:none;margin:0 calc(-1 * clamp(16px,4vw,48px))}
+.band h2{font-size:clamp(34px,6vw,60px);font-weight:800}.band span{opacity:.9;max-width:60ch}
+.band:hover h2{text-decoration:underline;text-underline-offset:6px}
+.lesson-list a{display:flex;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--line);text-decoration:none}
+.lesson-list a:hover{color:var(--c)}
+.box{max-width:420px;margin:40px auto;display:grid;gap:12px}
+input,textarea{font:inherit;width:100%;padding:12px;border:2px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+textarea{min-height:200px}
+.prose{max-width:62ch}.task{border-left:6px solid var(--c);padding:4px 0 4px 16px;margin:24px 0;font-weight:600}
+.fb{background:#fff;border-left:6px solid var(--c);padding:16px;white-space:pre-wrap;margin-top:16px;max-width:62ch}
+.err{color:#b42318;font-weight:600}.row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.crumb{color:var(--mut);text-decoration:none}
+@media (prefers-reduced-motion:no-preference){.band{transition:padding-left .2s}.band:hover{padding-left:calc(clamp(16px,4vw,40px) + 12px)}}
+</style></head><body>
+<header><a class="logo" href="#/">Parole</a><span id="who"></span></header>
+<main id="app"></main>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const MODS=[
+{id:"s",name:"Structurer",color:"var(--s)",intro:"Savoir ce que l’on veut dire, puis le dire dans le bon ordre.",lessons:[
+ {id:"s1",t:"Un message, une phrase",body:["Avant d’écrire un mot, formulez ce que le public doit retenir en une seule phrase. Si vous ne pouvez pas la dire en quinze secondes, votre message n’est pas encore clair.","Tout le reste du discours sert cette phrase : ce qui ne la sert pas se coupe."],task:"Écrivez le message de votre prochaine prise de parole en une phrase, puis les trois idées qui le soutiennent."},
+ {id:"s2",t:"Les vingt premières secondes",body:["Le public décide très vite s’il vous écoute. Ouvrez avec une question, un fait précis ou une image concrète, jamais avec des excuses ni un « bonjour, je vais vous parler de ».","Entraînez-vous à dire votre ouverture sans notes, à voix haute."],task:"Écrivez trois ouvertures différentes (question, fait, image) pour le même sujet."},
+ {id:"s3",t:"Le plan en trois temps",body:["Annoncez où vous allez, déroulez, puis terminez par une chute : une phrase qui referme la boucle ouverte au début.","Trois parties suffisent presque toujours. Au-delà, le public ne suit plus."],task:"Rédigez un discours de 90 secondes : annonce, deux arguments, chute."}]},
+{id:"e",name:"Faire entendre",color:"var(--e)",intro:"Le souffle, la voix, le rythme : ce qui rend un texte vivant à l’oral.",lessons:[
+ {id:"e1",t:"Respirer avant de parler",body:["Une pause de deux secondes avant la première phrase vous donne de l’autorité et le temps de respirer. Inspirez par le ventre, expirez lentement.","Le silence n’est pas un vide : c’est ce qui laisse une phrase atteindre le public."],task:"Écrivez un paragraphe de cinq phrases et marquez d’un « / » chaque endroit où vous marquerez une pause."},
+ {id:"e2",t:"Phrases courtes, mots concrets",body:["À l’oral, on ne peut pas relire. Préférez des phrases de quinze mots, des verbes d’action et des exemples que l’on peut se représenter.","Lisez votre texte à voix haute : là où vous butez, réécrivez."],task:"Réécrivez un paragraphe abstrait de votre travail en phrases courtes, avec au moins un exemple concret."},
+ {id:"e3",t:"Rythme et conviction",body:["Variez le rythme : ralentissez sur l’idée clé, accélérez sur le détail. Répéter un mot peut créer une cadence qui marque les esprits.","La conviction vient de la préparation : on ne convainc pas avec un texte que l’on découvre."],task:"Écrivez une conclusion de six phrases où un mot ou une structure revient trois fois."}]},
+{id:"a",name:"Analyser",color:"var(--a)",intro:"Comprendre comment un discours persuade, pour mieux construire le sien et mieux écouter celui des autres.",lessons:[
+ {id:"a1",t:"Ethos, pathos, logos",body:["Un discours persuade par trois leviers : la crédibilité de celui qui parle (ethos), l’émotion suscitée (pathos) et la solidité des arguments (logos).","Repérez lequel domine dans un discours que vous écoutez, et lequel manque dans le vôtre."],task:"Prenez un discours public récent et décrivez en 8 lignes quel levier domine, avec deux exemples."},
+ {id:"a2",t:"Repérer un sophisme",body:["Quelques pièges classiques : l’homme de paille (déformer l’argument adverse), la pente glissante (prédire une catastrophe sans preuve), le faux dilemme (n’offrir que deux options).","Nommer le procédé permet de répondre calmement plutôt que de subir."],task:"Écrivez un court argument contenant un faux dilemme, puis réécrivez-le sans le piège."},
+ {id:"a3",t:"Cadrer le débat",body:["Les mots choisis installent un cadre : parler de « charges » ou de « cotisations » ne dit pas la même chose. Celui qui impose le cadre oriente la discussion.","Avant de répondre, demandez-vous quel cadre votre interlocuteur vous propose, et si vous l’acceptez."],task:"Choisissez un sujet de débat et écrivez deux phrases décrivant le même fait avec deux cadres opposés."}]}];
+const LES=Object.fromEntries(MODS.flatMap(m=>m.lessons.map(l=>[l.id,{...l,m}])));
+const $=s=>document.querySelector(s),app=$("#app");
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sb=supabase.createClient(CFG.url,CFG.anon);let user=null,done=new Set();
+
+async function boot(){
+ const {data}=await sb.auth.getSession();user=data.session?.user||null;
+ sb.auth.onAuthStateChange((_,s)=>{user=s?.user||null;route()});
+ await route();
+}
+async function loadDone(){
+ const {data}=await sb.from("progress").select("lesson_id");done=new Set((data||[]).map(r=>r.lesson_id));
+}
+async function route(){
+ $("#who").innerHTML=user?`<button class="alt" id="out">Se déconnecter</button>`:"";
+ if(user)$("#out").onclick=()=>sb.auth.signOut();
+ if(!user)return authView();
+ await loadDone();
+ const [,k,id]=location.hash.split("/");
+ if(k==="l"&&LES[id])return lessonView(LES[id]);
+ home();
+}
+addEventListener("hashchange",()=>user&&route());
+
+function errMsg(e){const m=(e.message||"").toLowerCase(),c=e.code||"";
+ if(c==="email_not_confirmed"||m.includes("not confirmed"))return "Adresse e-mail non confirmée. Cliquez le lien reçu par e-mail, ou confirmez l’utilisateur dans Supabase > Authentication > Users.";
+ if(c==="invalid_credentials"||m.includes("invalid login"))return "E-mail ou mot de passe incorrect. Si le compte a été créé dans le tableau de bord Supabase, utilisez le mot de passe défini là-bas.";
+ if(m.includes("rate limit"))return "Trop de tentatives. Patientez quelques minutes.";
+ if(m.includes("api key"))return "Clé API invalide : vérifiez config.js.";
+ return "Connexion impossible : "+e.message}
+function authView(msg="",email=""){
+ app.innerHTML=`<div class="hero"><h1>Parlez pour être entendu.</h1><p>Neuf leçons, des exercices écrits et un coach qui vous répond sur chaque texte.</p></div>
+ <form class="box" id="f"><label>Adresse e-mail<input type="email" id="em" required autocomplete="email" value="${esc(email)}"></label>
+ <label>Mot de passe (8 caractères minimum)<input type="password" id="pw" minlength="8" required autocomplete="current-password"></label>
+ <p class="err" role="alert">${esc(msg)}</p>
+ <div class="row"><button type="submit">Se connecter</button><button type="button" class="alt" id="su">Créer un compte</button></div></form>`;
+ const creds=()=>({email:$("#em").value,password:$("#pw").value});
+ $("#f").onsubmit=async e=>{e.preventDefault();const {error}=await sb.auth.signInWithPassword(creds());if(error)authView(errMsg(error),creds().email)};
+ $("#su").onclick=async()=>{if(!$("#f").reportValidity())return;const {data,error}=await sb.auth.signUp(creds());
+  if(error)authView(errMsg(error),creds().email);else if(!data.session)authView("Compte créé. Confirmez votre adresse via l’e-mail reçu, puis connectez-vous.",creds().email)};
+}
+function home(){
+ app.innerHTML=`<div class="hero"><h1>Votre parcours</h1><p>Trois axes de travail. Commencez par celui qui vous manque le plus.</p></div>`+
+ MODS.map(m=>{const n=m.lessons.filter(l=>done.has(l.id)).length;
+  return `<section style="background:${m.color}"><a class="band" href="#/l/${m.lessons.find(l=>!done.has(l.id))?.id||m.lessons[0].id}"><h2>${m.name}</h2><span>${m.intro} ${n}/${m.lessons.length} terminées.</span></a></section>`}).join("")+
+ `<div style="margin-top:32px">`+MODS.map(m=>`<h3 style="margin:28px 0 4px;color:${m.color}">${m.name}</h3><div class="lesson-list" style="--c:${m.color}">`+
+  m.lessons.map(l=>`<a href="#/l/${l.id}"><span>${l.t}</span><span>${done.has(l.id)?"Terminée":"À faire"}</span></a>`).join("")+`</div>`).join("")+`</div>`;
+}
+async function lessonView(l){
+ const {data:last}=await sb.from("submissions").select("body,feedback").eq("lesson_id",l.id).order("created_at",{ascending:false}).limit(1);
+ const p=last?.[0];
+ app.innerHTML=`<p><a class="crumb" href="#/">← Retour au parcours</a></p><div style="--c:${l.m.color}">
+ <h1 style="font-size:clamp(34px,6vw,56px);color:${l.m.color}">${l.t}</h1>
+ <div class="prose">${l.body.map(t=>`<p>${t}</p>`).join("")}</div>
+ <p class="task prose">${l.task}</p>
+ <label class="prose" style="display:block">Votre texte<textarea id="tx" maxlength="4000">${esc(p?.body||"")}</textarea></label>
+ <p class="err" id="er" role="alert"></p>
+ <div class="row"><button id="ask">Demander un retour au coach</button><button class="alt" id="ok">${done.has(l.id)?"Leçon terminée":"Marquer comme terminée"}</button></div>
+ <div class="fb" id="fb" ${p?.feedback?"":"hidden"}>${esc(p?.feedback||"")}</div></div>`;
+ $("#ask").onclick=async()=>{
+  const text=$("#tx").value.trim(),b=$("#ask");$("#er").textContent="";
+  if(text.length<20){$("#er").textContent="Écrivez au moins 20 caractères.";return}
+  b.disabled=true;b.textContent="Le coach lit votre texte…";
+  try{
+   const {data:{session}}=await sb.auth.getSession();
+   const r=await fetch("/api/coach",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+session.access_token},body:JSON.stringify({lesson:l.id,text})});
+   const d=await r.json();if(!r.ok)throw new Error(d.error||"Erreur");
+   $("#fb").hidden=false;$("#fb").textContent=d.feedback;
+   await sb.from("submissions").insert({lesson_id:l.id,body:text,feedback:d.feedback});
+  }catch(e){$("#er").textContent=e.message}
+  b.disabled=false;b.textContent="Demander un retour au coach";
+ };
+ $("#ok").onclick=async()=>{
+  const {error}=await sb.from("progress").upsert({lesson_id:l.id});
+  if(error){$("#er").textContent="Enregistrement impossible. Réessayez.";return}
+  done.add(l.id);$("#ok").textContent="Leçon terminée";
+ };
+}
+boot();
+</script></body></html>
