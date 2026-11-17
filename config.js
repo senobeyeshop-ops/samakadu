@@ -1,2 +1,0 @@
-// Valeurs publiques (Supabase > Project Settings > API). La clé anon peut être publique : la sécurité vient des règles RLS.
-window.CFG = { url: "https://sitowzgjehnutohzxasq.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdG93emdqZWhudXRvaHp4YXNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ5MzYwMTMsImV4cCI6MjExMDUxMjAxM30.jeUI5VmDUoOiAplpyQ5vHOOJzqRX5gxF_mLGmKtA6Ue" };
