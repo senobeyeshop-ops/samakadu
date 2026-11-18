@@ -5,12 +5,12 @@ import { createHmac, createHash, timingSafeEqual } from "node:crypto";
 const ALIASES = {
   SUPABASE_ANON_KEY: ["ANON_KEY", "SUPABASE_KEY"],
   SUPABASE_SERVICE_ROLE_KEY: ["SERVICE_ROLE_SECRET", "SERVICE_ROLE_KEY"],
-  ANTHROPIC_API_KEY: ["ANTHROPIC_KEY"],
 };
 const read = (k) => process.env[k] || globalThis.Netlify?.env?.get?.(k) || "";
 // Nettoie les copier-coller : espaces, retours à la ligne, guillemets et « Bearer » collés par erreur.
 const clean = (v) => String(v || "").trim().replace(/^["'`]+|["'`]+$/g, "").replace(/^Bearer\s+/i, "").trim();
 export const env = (k) => clean([k, ...(ALIASES[k] || [])].map(read).find(Boolean));
+export const envOnly = (k) => clean(read(k));
 
 export const json = (o, s = 200) =>
   new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });

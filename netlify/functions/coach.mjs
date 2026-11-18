@@ -1,5 +1,16 @@
 // POST /api/coach {lesson, text, seconds?} — retour du coach IA. Secrets lus uniquement dans les variables Netlify.
-import { env, json, sbUser, sbService, bearer, getUser, originOk } from "../lib/common.mjs";
+import { env, envOnly, json, sbUser, sbService, bearer, getUser, originOk } from "../lib/common.mjs";
+
+// Accès à Claude : votre propre clé d'API en priorité (ANTHROPIC_KEY), sinon la passerelle IA de Netlify,
+// qui injecte d'elle-même ANTHROPIC_API_KEY (clé factice) et ANTHROPIC_BASE_URL.
+function anthropicAccess() {
+  const real = (k) => k.startsWith("sk-ant-" + "api");
+  const own = [envOnly("ANTHROPIC_KEY"), envOnly("ANTHROPIC_API_KEY")].find(real);
+  if (own) return { key: own, base: "https://api.anthropic.com", via: "clé Anthropic" };
+  const gw = envOnly("ANTHROPIC_BASE_URL");
+  if (gw) return { key: envOnly("ANTHROPIC_API_KEY"), base: gw.replace(/\/+$/, ""), via: "passerelle IA Netlify" };
+  return { key: envOnly("ANTHROPIC_KEY") || envOnly("ANTHROPIC_API_KEY"), base: "https://api.anthropic.com", via: "clé Anthropic" };
+}
 
 // Rend le crédit consommé quand le coach n'a pas pu répondre (réservé au serveur).
 const refund = async (uid) => {
@@ -52,8 +63,8 @@ export default async (req) => {
       : "";
     const system = [BASE, L.modules?.coach_angle || "", `Exercice : « ${L.title} ». Consigne donnée à l’apprenant : ${L.lesson_content.task}`, timing].join("\n");
 
-    const akey = env("ANTHROPIC_API_KEY");
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
+    const ai = anthropicAccess(), akey = ai.key;
+    const r = await fetch(`${ai.base}/v1/messages`, {
       method: "POST",
       signal: AbortSignal.timeout(50000), // les fonctions en streaming ont 60 s sur Netlify
       headers: { "x-api-key": akey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
@@ -72,7 +83,8 @@ export default async (req) => {
       const msg = String(e?.error?.message || "").toLowerCase();
       console.error("anthropic_error", r.status, type, msg.slice(0, 120));
       const why =
-        r.status === 401 ? (!akey ? "clé Anthropic absente dans Netlify" : !akey.startsWith("sk-ant-" + "api") ? "la valeur dans Netlify n’est pas une clé d’API Anthropic" : `clé Anthropic refusée : révoquée ou incomplète (${akey.length} caractères)`) :
+        r.status === 401 ? (!akey ? "aucune clé Anthropic dans Netlify" : ai.via !== "clé Anthropic" ? "passerelle IA Netlify refusée" : `clé Anthropic refusée : révoquée ou incomplète (${akey.length} caractères)`) :
+        r.status === 402 || r.status === 403 ? `accès refusé par ${ai.via}` :
         msg.includes("credit balance") ? "crédit Anthropic épuisé" :
         msg.includes("model") ? "modèle IA introuvable" :
         r.status === 429 ? "trop de demandes à la fois" :
