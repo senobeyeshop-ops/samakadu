@@ -57,8 +57,18 @@ export default async (req) => {
       }),
     });
     if (!r.ok || !r.body) {
-      console.error("anthropic_error", r.status); // jamais le texte ni l'e-mail
-      return json({ error: "Le coach est indisponible. Réessayez dans un instant." }, 502);
+      // On ne renvoie que le type d'erreur d'Anthropic (aucun secret, aucune donnée de l'apprenant)
+      const e = await r.json().catch(() => ({}));
+      const type = String(e?.error?.type || "inconnue").slice(0, 40);
+      const msg = String(e?.error?.message || "").toLowerCase();
+      console.error("anthropic_error", r.status, type, msg.slice(0, 120));
+      const why =
+        r.status === 401 ? "clé Anthropic refusée" :
+        msg.includes("credit balance") ? "crédit Anthropic épuisé" :
+        msg.includes("model") ? "modèle IA introuvable" :
+        r.status === 429 ? "trop de demandes à la fois" :
+        r.status === 529 || r.status >= 500 ? "Anthropic surchargé" : type;
+      return json({ error: `Le coach est indisponible (${why}, code ${r.status}). Réessayez dans un instant.` }, 502);
     }
 
     // Diffusion mot à mot : on relaie le texte au navigateur dès qu'il arrive, puis on enregistre le retour complet.
