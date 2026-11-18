@@ -1,7 +1,14 @@
 // Outils partagés par les fonctions Netlify. Aucun secret ici : tout vient des variables d'environnement.
 import { createHmac, createHash, timingSafeEqual } from "node:crypto";
 
-export const env = (k) => process.env[k] || globalThis.Netlify?.env?.get?.(k) || "";
+// Noms acceptés pour chaque variable (les seconds sont ceux déjà saisis dans Netlify).
+const ALIASES = {
+  SUPABASE_ANON_KEY: ["ANON_KEY", "SUPABASE_KEY"],
+  SUPABASE_SERVICE_ROLE_KEY: ["SERVICE_ROLE_SECRET", "SERVICE_ROLE_KEY"],
+  ANTHROPIC_API_KEY: ["ANTHROPIC_KEY"],
+};
+const read = (k) => process.env[k] || globalThis.Netlify?.env?.get?.(k) || "";
+export const env = (k) => [k, ...(ALIASES[k] || [])].map(read).find(Boolean) || "";
 
 export const json = (o, s = 200) =>
   new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
