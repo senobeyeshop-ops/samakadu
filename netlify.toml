@@ -1,0 +1,54 @@
+[build]
+  publish = "."
+  # Fait échouer le déploiement si une clé secrète a été oubliée dans le code
+  command = "! grep -rEn --exclude-dir=node_modules --exclude-dir=vendor --exclude=netlify.toml 'sk-ant-api|sb_secret_|InJvbGUiOiJzZXJ2aWNlX3Jv|b2xlIjoic2VydmljZV9yb2xl|cm9sZSI6InNlcnZpY2Vfcm9s|wave_sn_(prod|WHS|AKS)_[A-Za-z0-9]' . || (echo 'Secret détecté dans le code : déploiement annulé' && exit 1)"
+
+[functions]
+  directory = "netlify/functions"
+
+# Les fichiers internes ne doivent pas être servis publiquement
+[[redirects]]
+  from = "/supabase/*"
+  to = "/404"
+  status = 404
+  force = true
+[[redirects]]
+  from = "/netlify/*"
+  to = "/404"
+  status = 404
+  force = true
+[[redirects]]
+  from = "/README.md"
+  to = "/404"
+  status = 404
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), geolocation=(), microphone=(self)"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/vendor/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[redirects]]
+  from = "/.env.example"
+  to = "/404"
+  status = 404
+  force = true
