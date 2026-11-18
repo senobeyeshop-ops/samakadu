@@ -263,3 +263,12 @@ revoke insert, update, delete on public.modules, public.lessons, public.lesson_c
                 public.orders, public.memberships, public.coach_usage from anon, authenticated;
 revoke all on public.progress, public.submissions from anon;
 drop index if exists public.submissions_user_id_lesson_id_created_at_idx;
+
+-- Rend un crédit du coach quand il n'a pas pu répondre (serveur uniquement)
+create or replace function public.refund_coach_credit(p_user uuid)
+returns void language sql volatile security definer set search_path = '' as $$
+  update public.coach_usage set calls = calls - 1
+  where user_id = p_user and day = current_date and calls > 0;
+$$;
+revoke all on function public.refund_coach_credit(uuid) from public, anon, authenticated;
+grant execute on function public.refund_coach_credit(uuid) to service_role;
