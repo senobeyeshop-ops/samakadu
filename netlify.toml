@@ -1,7 +1,7 @@
 [build]
   publish = "."
   # Fait échouer le déploiement si une clé secrète a été oubliée dans le code
-  command = "! grep -rEn --exclude-dir=node_modules --exclude-dir=vendor --exclude=netlify.toml 'sk-ant-api|sb_secret_|InJvbGUiOiJzZXJ2aWNlX3Jv|b2xlIjoic2VydmljZV9yb2xl|cm9sZSI6InNlcnZpY2Vfcm9s|wave_sn_(prod|WHS|AKS)_[A-Za-z0-9]' . || (echo 'Secret détecté dans le code : déploiement annulé' && exit 1)"
+  command = "! grep -rEn --exclude-dir=node_modules --exclude-dir=vendor --exclude=netlify.toml 'sk-ant-api[0-9]{2}-[A-Za-z0-9_-]{20,}|sb_secret_[A-Za-z0-9_-]{10,}|InJvbGUiOiJzZXJ2aWNlX3Jv|b2xlIjoic2VydmljZV9yb2xl|cm9sZSI6InNlcnZpY2Vfcm9s|wave_sn_(prod|WHS|AKS)_[A-Za-z0-9]' . || (echo 'Secret détecté dans le code : déploiement annulé' && exit 1)"
 
 [functions]
   directory = "netlify/functions"

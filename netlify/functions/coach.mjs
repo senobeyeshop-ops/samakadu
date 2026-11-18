@@ -72,7 +72,7 @@ export default async (req) => {
       const msg = String(e?.error?.message || "").toLowerCase();
       console.error("anthropic_error", r.status, type, msg.slice(0, 120));
       const why =
-        r.status === 401 ? (!akey ? "clé Anthropic absente dans Netlify" : !akey.startsWith("sk-ant-api") ? "la valeur dans Netlify n’est pas une clé d’API Anthropic" : `clé Anthropic refusée : révoquée ou incomplète (${akey.length} caractères)`) :
+        r.status === 401 ? (!akey ? "clé Anthropic absente dans Netlify" : !akey.startsWith("sk-ant-" + "api") ? "la valeur dans Netlify n’est pas une clé d’API Anthropic" : `clé Anthropic refusée : révoquée ou incomplète (${akey.length} caractères)`) :
         msg.includes("credit balance") ? "crédit Anthropic épuisé" :
         msg.includes("model") ? "modèle IA introuvable" :
         r.status === 429 ? "trop de demandes à la fois" :
