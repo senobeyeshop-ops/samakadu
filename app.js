@@ -192,7 +192,7 @@ async function lessonView(l){
    fb.hidden=false;fb.textContent="";fb.classList.add("live");b.textContent="Le coach écrit…";
    for(;;){const {value,done:end}=await rd.read();if(end)break;txt+=dec.decode(value,{stream:true});if(document.body.contains(fb))fb.textContent=txt}
    fb.classList.remove("live");
-   const rem=r.headers.get("x-remaining");if(rem!==null&&rem!=="")fb.textContent=txt+`\n\n— Retours restants aujourd’hui : ${rem}`;
+   const rem=r.headers.get("x-remaining");if(rem!==null&&rem!==""&&!txt.includes("[Le coach a été interrompu"))fb.textContent=txt+`\n\n— Retours restants aujourd’hui : ${rem}`;
   }catch(e){$("#er").textContent=e.message}
   finally{b.disabled=false;b.textContent="Demander un retour au coach"}
  };

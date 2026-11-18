@@ -70,7 +70,7 @@ export default async (req) => {
       headers: { "x-api-key": akey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
         model: env("ANTHROPIC_MODEL") || "claude-haiku-5-5",
-        max_tokens: 450,
+        max_tokens: 1200,
         stream: true,
         system,
         messages: [{ role: "user", content: `<texte>${text}</texte>` }],
@@ -97,7 +97,7 @@ export default async (req) => {
     const enc = new TextEncoder(), dec = new TextDecoder();
     const stream = new ReadableStream({
       async start(ctrl) {
-        let buf = "", full = "", ok = true;
+        let buf = "", full = "", ok = true, why = "", stop = "", kinds = new Set();
         const reader = r.body.getReader();
         try {
           for (;;) {
@@ -109,17 +109,24 @@ export default async (req) => {
               const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
               if (!line.startsWith("data:")) continue;
               let ev; try { ev = JSON.parse(line.slice(5)); } catch { continue; }
+              kinds.add(ev.delta?.type || ev.content_block?.type || ev.type);
               if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta" && full.length < 4000) {
                 full += ev.delta.text; ctrl.enqueue(enc.encode(ev.delta.text));
-              } else if (ev.type === "error") { ok = false; }
+              } else if (ev.type === "message_delta" && ev.delta?.stop_reason) {
+                stop = ev.delta.stop_reason;
+              } else if (ev.type === "error") {
+                ok = false; why = String(ev.error?.type || "erreur") + (ev.error?.message ? " : " + String(ev.error.message).slice(0, 80) : "");
+              }
             }
           }
         } catch (e) {
-          ok = false; console.error("stream_error", e?.name);
+          ok = false; why = e?.name === "TimeoutError" ? "délai dépassé" : "connexion coupée"; console.error("stream_error", e?.name);
         }
         if (!ok || !full) {
           await refund(charged);
-          ctrl.enqueue(enc.encode("\n\n[Le coach a été interrompu. Réessayez.]"));
+          if (!why) why = stop ? `arrêt « ${stop} » sans texte` : `aucun texte reçu (${[...kinds].join(", ").slice(0, 80) || "flux vide"})`;
+          console.error("coach_empty", why);
+          ctrl.enqueue(enc.encode(`\n\n[Le coach a été interrompu : ${why}. Ce retour ne vous est pas décompté. Réessayez.]`));
         } else {
           // Enregistré côté serveur : un client ne peut pas fabriquer un faux retour du coach.
           const ins = await sbUser("/rest/v1/submissions", token, {
