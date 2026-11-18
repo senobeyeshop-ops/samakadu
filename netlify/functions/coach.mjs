@@ -52,10 +52,11 @@ export default async (req) => {
       : "";
     const system = [BASE, L.modules?.coach_angle || "", `Exercice : « ${L.title} ». Consigne donnée à l’apprenant : ${L.lesson_content.task}`, timing].join("\n");
 
+    const akey = env("ANTHROPIC_API_KEY");
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       signal: AbortSignal.timeout(50000), // les fonctions en streaming ont 60 s sur Netlify
-      headers: { "x-api-key": env("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      headers: { "x-api-key": akey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
         model: env("ANTHROPIC_MODEL") || "claude-haiku-5-5",
         max_tokens: 450,
@@ -71,7 +72,7 @@ export default async (req) => {
       const msg = String(e?.error?.message || "").toLowerCase();
       console.error("anthropic_error", r.status, type, msg.slice(0, 120));
       const why =
-        r.status === 401 ? "clé Anthropic refusée" :
+        r.status === 401 ? (!akey ? "clé Anthropic absente dans Netlify" : !akey.startsWith("sk-ant-api") ? "la valeur dans Netlify n’est pas une clé d’API Anthropic" : `clé Anthropic refusée : révoquée ou incomplète (${akey.length} caractères)`) :
         msg.includes("credit balance") ? "crédit Anthropic épuisé" :
         msg.includes("model") ? "modèle IA introuvable" :
         r.status === 429 ? "trop de demandes à la fois" :

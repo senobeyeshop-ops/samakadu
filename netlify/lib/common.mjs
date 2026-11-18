@@ -8,7 +8,9 @@ const ALIASES = {
   ANTHROPIC_API_KEY: ["ANTHROPIC_KEY"],
 };
 const read = (k) => process.env[k] || globalThis.Netlify?.env?.get?.(k) || "";
-export const env = (k) => [k, ...(ALIASES[k] || [])].map(read).find(Boolean) || "";
+// Nettoie les copier-coller : espaces, retours à la ligne, guillemets et « Bearer » collés par erreur.
+const clean = (v) => String(v || "").trim().replace(/^["'`]+|["'`]+$/g, "").replace(/^Bearer\s+/i, "").trim();
+export const env = (k) => clean([k, ...(ALIASES[k] || [])].map(read).find(Boolean));
 
 export const json = (o, s = 200) =>
   new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
