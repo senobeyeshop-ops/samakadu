@@ -8,6 +8,8 @@ const SITE=location.origin+location.pathname;
 const fcfa=n=>new Intl.NumberFormat("fr-FR").format(n)+" FCFA";
 const dateFr=d=>new Date(d).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
 const WPM=130;
+// Affichage sûr du retour : tout est échappé, seul **gras** devient du gras.
+const fbHtml=t=>esc(t).replace(/\*\*([^*\n]{1,120})\*\*/g,"<strong>$1</strong>").replace(/^#{1,4}\s*/gm,"");
 const SUBJECTS=["Le meilleur conseil qu’on vous ait donné","Dakar dans dix ans","La teranga a-t-elle sa place en entreprise ?","Faut-il interdire le téléphone à l’école ?","Votre plus belle erreur","Entreprendre jeune : chance ou risque ?","Le télétravail est-il une bonne idée ?","Faut-il prêter de l’argent à ses amis ?","L’intelligence artificielle remplacera-t-elle les enseignants ?","La ponctualité est-elle une politesse ?","Un livre ou un film qui vous a changé","Pourquoi tout le monde devrait apprendre à parler en public","L’argent fait-il le bonheur ?","Les réseaux sociaux nous rapprochent-ils ?","Le métier dont vous rêviez enfant","Ce que vous changeriez dans votre quartier","Faut-il travailler le samedi ?","Le sport le plus utile dans la vie","Une tradition que vous aimeriez transmettre","Réussir, c’est quoi pour vous ?"];
 
 async function boot(){
@@ -162,7 +164,7 @@ async function lessonView(l){
  <p class="mut" id="wc"></p>
  <p class="err" id="er" role="alert"></p>
  <div class="row"><button id="ask">Demander un retour au coach</button><button class="alt" id="ok">${done.has(l.id)?"Leçon terminée ✔":"Marquer comme terminée"}</button></div>
- <div class="fb" id="fb" ${p?.feedback?"":"hidden"}>${esc(p?.feedback||"")}</div></div>`;
+ <div class="fb" id="fb" ${p?.feedback?"":"hidden"}>${fbHtml(p?.feedback||"")}</div></div>`;
 
  const wc=()=>{const n=$("#tx").value.trim().split(/\s+/).filter(Boolean).length,est=Math.round(n/WPM*60);
   $("#wc").textContent=n?`${n} mots · environ ${fmt(est)} à l’oral`+(dur?(est>dur*1.15?" — trop long pour la durée cible":est<dur*.6?" — un peu court":" — dans le temps ✔"):""):""};
@@ -191,8 +193,8 @@ async function lessonView(l){
    const fb=$("#fb"),rd=r.body.getReader(),dec=new TextDecoder();let txt="";
    fb.hidden=false;fb.textContent="";fb.classList.add("live");b.textContent="Le coach écrit…";
    for(;;){const {value,done:end}=await rd.read();if(end)break;txt+=dec.decode(value,{stream:true});if(document.body.contains(fb))fb.textContent=txt}
-   fb.classList.remove("live");
-   const rem=r.headers.get("x-remaining");if(rem!==null&&rem!==""&&!txt.includes("[Le coach a été interrompu"))fb.textContent=txt+`\n\n— Retours restants aujourd’hui : ${rem}`;
+   fb.classList.remove("live");fb.innerHTML=fbHtml(txt);
+   const rem=r.headers.get("x-remaining");if(rem!==null&&rem!==""&&!txt.includes("[Le coach a été interrompu"))fb.innerHTML=fbHtml(txt+`\n\n— Retours restants aujourd’hui : ${rem}`);
   }catch(e){$("#er").textContent=e.message}
   finally{b.disabled=false;b.textContent="Demander un retour au coach"}
  };
