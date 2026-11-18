@@ -24,9 +24,11 @@ async function createPayment(req) {
 
   const { plan, method } = await req.json().catch(() => ({}));
   if (!PLANS.has(plan) || !METHODS.has(method)) return json({ error: "Offre ou moyen de paiement inconnu." }, 400);
-  if (method === "wave" && !env("WAVE_API_KEY")) return json({ error: "Le paiement Wave n’est pas encore activé." }, 503);
-  if (method === "orange_money" && !(env("PAYTECH_API_KEY") && env("PAYTECH_API_SECRET")))
-    return json({ error: "Le paiement Orange Money n’est pas encore activé." }, 503);
+  // Aiguillage : Wave en direct si la clé API Wave existe, sinon tout passe par PayTech (Wave et Orange Money).
+  const hasPaytech = Boolean(env("PAYTECH_API_KEY") && env("PAYTECH_API_SECRET"));
+  const viaWaveDirect = method === "wave" && Boolean(env("WAVE_API_KEY"));
+  if (!viaWaveDirect && !hasPaytech)
+    return json({ error: `Le paiement ${method === "wave" ? "Wave" : "Orange Money"} n’est pas encore activé.` }, 503);
 
   // Le prix est fixé dans la base (table plans) : le navigateur n'envoie jamais de montant.
   const o = await sbUser("/rest/v1/rpc/create_order", token, { method: "POST", body: JSON.stringify({ p_plan: plan, p_method: method }) });
@@ -39,7 +41,7 @@ async function createPayment(req) {
   const back = `${siteUrl()}/#/paiement/${order.id}`;
 
   try {
-    if (method === "wave") {
+    if (viaWaveDirect) {
       const r = await waveFetch("/v1/checkout/sessions", {
         method: "POST",
         body: JSON.stringify({ amount: String(order.amount), currency: "XOF", client_reference: order.id, success_url: back, error_url: `${back}/echec` }),
@@ -50,6 +52,9 @@ async function createPayment(req) {
       return json({ url: s.wave_launch_url, order: order.id });
     }
 
+    // Commande créée « wave » mais payée via PayTech : on corrige le fournisseur côté serveur.
+    if (order.provider !== "paytech")
+      await sbService(`/rest/v1/orders?id=eq.${order.id}`, { method: "PATCH", headers: { prefer: "return=minimal" }, body: JSON.stringify({ provider: "paytech" }) });
     const r = await fetch("https://paytech.sn/api/payment/request-payment", {
       method: "POST",
       signal: AbortSignal.timeout(8000),
@@ -64,7 +69,7 @@ async function createPayment(req) {
         ipn_url: `${siteUrl()}/api/webhooks/paytech`,
         success_url: back,
         cancel_url: `${back}/echec`,
-        target_payment: "Orange Money",
+        target_payment: method === "wave" ? "Wave" : "Orange Money",
         custom_field: JSON.stringify({ order: order.id }),
       }),
     });
@@ -72,7 +77,7 @@ async function createPayment(req) {
     if (!r.ok || Number(d.success) !== 1 || !d.redirect_url) {
       console.error("paytech_create", r.status);
       await markFailed(order.id);
-      return json({ error: "Orange Money est indisponible. Réessayez." }, 502);
+      return json({ error: "Le service de paiement est indisponible. Réessayez." }, 502);
     }
     if (d.token)
       await sbService(`/rest/v1/orders?id=eq.${order.id}`, { method: "PATCH", headers: { prefer: "return=minimal" }, body: JSON.stringify({ provider_ref: d.token }) });

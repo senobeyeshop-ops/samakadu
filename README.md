@@ -27,12 +27,12 @@ ce qu'il doit évaluer ; `duration_sec` d'une leçon active le chronomètre.
 Prix dans la table `plans` (modifiables dans Supabase) : 1 mois 5 000 FCFA, 3 mois 12 000 FCFA, 12 mois 40 000 FCFA.
 Paiement unique sans renouvellement ; un nouvel achat prolonge l'accès.
 
-- **Wave** : en direct via l'API Wave Checkout.
-  Dans business.wave.com > Développeurs : créez une clé API (`WAVE_API_KEY`), puis enregistrez le webhook
-  `https://VOTRE-SITE/api/webhooks/wave` (événements `checkout.session.completed` et `checkout.session.payment_failed`) avec la
-  méthode « signing secret » ; copiez ce secret dans `WAVE_WEBHOOK_SECRET`.
-- **Orange Money** : via PayTech (paytech.sn), qui gère l'API Orange Money. Clés dans Paramètres > API.
-  Commencez avec `PAYTECH_ENV=test`, puis passez à `prod` quand PayTech a activé votre compte.
+- **Aujourd'hui : tout passe par PayTech** (paytech.sn), qui encaisse Wave et Orange Money. Il suffit de
+  `PAYTECH_API_KEY`, `PAYTECH_API_SECRET` et `PAYTECH_ENV` (`test` puis `prod`). L'adresse de notification
+  (`https://VOTRE-SITE/api/webhooks/paytech`) est envoyée automatiquement à chaque paiement : rien à régler chez PayTech.
+- **Plus tard, Wave en direct** (frais plus bas) : ajoutez `WAVE_API_KEY` et `WAVE_WEBHOOK_SECRET`
+  (webhook `https://VOTRE-SITE/api/webhooks/wave`, événements `checkout.session.completed` et
+  `checkout.session.payment_failed`). Le site bascule seul : Wave en direct, Orange Money toujours via PayTech.
 
 Sécurité des paiements :
 - le montant est toujours lu dans la base ; le navigateur n'envoie qu'un nom d'offre ;
